@@ -1,0 +1,22 @@
+[package]
+name = "rust_win32_examples"
+version = "0.1.0"
+authors = ["Rafael Villar Burke <pachi@rvburke.com>"]
+edition = "2018"
+
+[dependencies]
+winapi = { version = "0.3.6", features = ["wingdi", "winuser", "libloaderapi", "combaseapi", "objbase", "shobjidl", "winerror"] }
+#uuid-sys = "0.1.3"
+
+#[target.'cfg(target_os = "windows")'.features]
+#default = ["windows"]
+
+#[[bin]]
+#name = "02_windows"
+#path = "src/bin/02_window.rs"
+#required-features = ["windows"]
+
+#[[bin]]
+#name = "03_calculator"
+#path = "src/bin/03_calculator.rs"
+#required-features = ["windows"]

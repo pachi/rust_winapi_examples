@@ -1,0 +1,5 @@
+- Move win32_string to lib
+- Move run_message_loop, create_main_window to lib
+- Deduplicate error handling (MessageBox and Err) in window create_main_window
+- Fix getting selected folder from FileOpenDialog
+
