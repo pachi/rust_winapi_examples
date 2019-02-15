@@ -5,6 +5,7 @@ use std::io::Error;
 
 #[cfg(windows)]
 // Get win32 lpstr from &str, converting u8 to u16 and appending '\0'
+// See retep998's traits for a more general solution: https://users.rust-lang.org/t/tidy-pattern-to-work-with-lpstr-mutable-char-array/2976/2
 fn to_wstring(value: &str) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
 
