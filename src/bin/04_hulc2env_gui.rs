@@ -10,9 +10,11 @@
 ///
 /// See https://docs.microsoft.com/en-us/windows/desktop/learnwin32/learn-to-program-for-windows
 /// See Tomaka's error handling strategy for HRESULT (check_result): https://github.com/tomaka/cpal/blob/master/src/wasapi/mod.rs
+/// See retep998's string handling in https://users.rust-lang.org/t/tidy-pattern-to-work-with-lpstr-mutable-char-array/2976
 use std::error::Error;
 use std::ptr::null_mut;
 use winapi::shared::minwindef::*;
+use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::*;
@@ -63,6 +65,16 @@ fn to_wstring(value: &str) -> Vec<u16> {
         .collect()
 }
 
+// Get a String from a string as wide pointer (PWSTR)
+pub unsafe fn pwstr_to_string(ptr: PWSTR) -> String {
+    use std::slice::from_raw_parts;
+    let len = (0_usize..)
+        .find(|&n| *ptr.offset(n as isize) == 0)
+        .expect("Couldn't find null terminator");
+    let array: &[u16] = from_raw_parts(ptr, len);
+    String::from_utf16_lossy(array)
+}
+
 // Window procedure function to handle events
 pub unsafe extern "system" fn window_proc(
     hwnd: HWND,
@@ -91,13 +103,13 @@ pub unsafe extern "system" fn window_proc(
                 IDC_BUTTON_DIRIN => {
                     if wm_event == BN_CLICKED {
                         // Clicked button 1
-                        MODEL.dir_in = Box::leak(dir_open().into_boxed_str());
+                        MODEL.dir_in = Box::leak(get_folder_path().into_boxed_str());
                         SetWindowTextW(MODEL.h_label_prj_in, to_wstring(&MODEL.dir_in).as_ptr());
                     }
                 }
                 IDC_BUTTON_DIROUT => {
                     // Clicked button 2
-                    MODEL.dir_out = Box::leak(dir_open().into_boxed_str());
+                    MODEL.dir_out = Box::leak(get_folder_path().into_boxed_str());
                     SetWindowTextW(MODEL.h_label_prj_out, to_wstring(&MODEL.dir_out).as_ptr());
                 }
                 IDC_BUTTON_RUN => {
@@ -304,7 +316,8 @@ unsafe fn create_gui(hparent: HWND) {
     );
 }
 
-unsafe fn dir_open() -> String {
+// Open FileOpenDialog in folder select mode to get a folder path
+unsafe fn get_folder_path() -> String {
     use winapi::shared::winerror::SUCCEEDED;
     use winapi::um::combaseapi::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL};
     use winapi::um::objbase::{COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE};
@@ -349,20 +362,13 @@ unsafe fn dir_open() -> String {
             if SUCCEEDED((*pfd).Show(null_mut())) {
                 let mut psi: *mut IShellItem = std::mem::zeroed();
                 if SUCCEEDED((*pfd).GetResult(&mut psi)) {
-                    let mut name: Vec<u16> = Vec::with_capacity(MAX_PATH as usize);
-                    let readlen = (*psi).GetDisplayName(SIGDN_FILESYSPATH, &mut name.as_mut_ptr());
-                    name.set_len(readlen as usize);
-                    sel_dir = String::from_utf16_lossy(&name);
-                    MessageBoxW(
-                        null_mut(),
-                        to_wstring(&format!(
-                            "Selected dir: '{}' (len = {})",
-                            sel_dir, readlen
-                        ))
-                        .as_ptr(),
-                        to_wstring("Warning").as_ptr(),
-                        MB_ICONEXCLAMATION | MB_OK,
-                    );
+                    // Provide a pointer to a buffer so windows can swap it for its own buffer
+                    let mut buffer: PWSTR = std::ptr::null_mut();
+                    if SUCCEEDED((*psi).GetDisplayName(SIGDN_FILESYSPATH, &mut buffer)) {
+                        sel_dir = pwstr_to_string(buffer);
+                    }
+                    // Free the windows provided buffer to avoid leaking it
+                    winapi::um::combaseapi::CoTaskMemFree(std::mem::transmute(buffer));
                 }
                 (*psi).Release();
             }
