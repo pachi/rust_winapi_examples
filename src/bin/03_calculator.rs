@@ -396,7 +396,7 @@ unsafe fn init_interface(h_wnd: HWND) {
 // Message handling loop
 fn run_message_loop(hwnd: HWND) -> WPARAM {
     unsafe {
-        let mut msg: MSG = std::mem::uninitialized();
+        let mut msg: MSG = std::mem::zeroed();
 
         loop {
             // Get message from message queue
