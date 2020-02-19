@@ -341,7 +341,7 @@ unsafe fn get_folder_path() -> String {
         COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE,
     );
     if SUCCEEDED(hr) {
-        let mut pfd: *mut IFileDialog = std::mem::uninitialized();
+        let mut pfd: *mut IFileDialog = std::mem::zeroed();
         hr = CoCreateInstance(
             &CLSID_FileOpenDialog,
             null_mut(),
@@ -382,7 +382,7 @@ unsafe fn get_folder_path() -> String {
 // Message handling loop
 fn run_message_loop(hwnd: HWND) -> WPARAM {
     unsafe {
-        let mut msg: MSG = std::mem::uninitialized();
+        let mut msg: MSG = std::mem::zeroed();
         loop {
             // Get message from message queue
             if GetMessageW(&mut msg, hwnd, 0, 0) > 0 {

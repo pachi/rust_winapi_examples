@@ -132,7 +132,7 @@ fn create_main_window(name: &str, title: &str) -> Result<HWND, Box<dyn Error>> {
 // Message handling loop
 fn run_message_loop(hwnd: HWND) -> WPARAM {
     unsafe {
-        let mut msg: MSG = std::mem::uninitialized();
+        let mut msg: MSG = std::mem::zeroed();
         loop {
             // Get message from message queue
             if GetMessageW(&mut msg, hwnd, 0, 0) > 0 {
